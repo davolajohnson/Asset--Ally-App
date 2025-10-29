@@ -1,0 +1,11 @@
+{% extends 'main_app/base.html' %}
+{% block content %}
+  <h2>{{ object.asset_tag }} — {{ object.model }}</h2>
+  <p><strong>Serial:</strong> {{ object.serial_number }}</p>
+  <p><strong>Status:</strong> {{ object.status }} | <strong>Condition:</strong> {{ object.condition }}</p>
+  <p>
+    <a href="{% url 'device-update' object.pk %}">Edit</a> |
+    <a href="{% url 'device-delete' object.pk %}">Delete</a> |
+    <a href="{% url 'device-index' %}">Back</a>
+  </p>
+{% endblock %}

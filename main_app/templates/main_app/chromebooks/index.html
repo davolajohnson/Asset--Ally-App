@@ -1,0 +1,18 @@
+{% extends 'main_app/base.html' %}
+{% block content %}
+  <h2>Devices</h2>
+  {% if object_list %}
+    <ul>
+      {% for device in object_list %}
+        <li>
+          <a href="{% url 'device-detail' device.pk %}">
+            {{ device.asset_tag }} — {{ device.model }}
+          </a>
+        </li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <p>No devices yet.</p>
+  {% endif %}
+  <p><a href="{% url 'device-create' %}">Add device</a></p>
+{% endblock %}

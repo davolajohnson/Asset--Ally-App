@@ -1,0 +1,10 @@
+{% extends 'main_app/base.html' %}
+{% block content %}
+  <h2>{{ view.action_label|default:"Save Device" }}</h2>
+  <form method="post">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <button type="submit">{{ view.button_label|default:"Save" }}</button>
+  </form>
+  <p><a href="{% url 'device-index' %}">Cancel</a></p>
+{% endblock %}
