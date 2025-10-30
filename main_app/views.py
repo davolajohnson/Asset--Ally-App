@@ -1,17 +1,14 @@
 from django.shortcuts import render
 from django.views.generic import ListView, DetailView, CreateView, UpdateView, DeleteView
 from django.urls import reverse_lazy
-
 from .models import Device
 
-# Simple pages
 def home(request):
     return render(request, 'main_app/home.html')
 
 def about(request):
     return render(request, 'main_app/about.html')
 
-# Device CRUD
 class DeviceListView(ListView):
     model = Device
     template_name = 'main_app/chromebooks/index.html'
