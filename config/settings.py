@@ -1,40 +1,41 @@
-# config/settings.py
 from pathlib import Path
 import os
+from dotenv import load_dotenv
 
-# ======================
-# Paths
-# ======================
+load_dotenv()
+
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# ======================
-# Security / Debug  (dev defaults)
-# ======================
-SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", "dev-secret-key-change-me")
+# -----------------------------------------------------------------------------
+# Security / Core
+# -----------------------------------------------------------------------------
+SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", "dev-only-key")
 DEBUG = os.getenv("DJANGO_DEBUG", "1") == "1"
-ALLOWED_HOSTS: list[str] = os.getenv("DJANGO_ALLOWED_HOSTS", "").split() or ["localhost", "127.0.0.1"]
 
-# ======================
-# Applications
-# ======================
+# Parse comma-separated env var into list, stripping spaces and empties
+ALLOWED_HOSTS = [
+    h.strip()
+    for h in os.getenv("DJANGO_ALLOWED_HOSTS", "127.0.0.1,localhost").split(",")
+    if h.strip()
+]
+
+# -----------------------------------------------------------------------------
+# Apps / Middleware / Templates
+# -----------------------------------------------------------------------------
 INSTALLED_APPS = [
-    # Django
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
-
-    # Project apps
-    "main_app.apps.MainAppConfig",
+    "main_app",
 ]
 
-# ======================
-# Middleware
-# ======================
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    # WhiteNoise helps with static files (keep it even in dev; harmless)
+    "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
@@ -43,16 +44,8 @@ MIDDLEWARE = [
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
 
-# ======================
-# URL / WSGI / ASGI
-# ======================
 ROOT_URLCONF = "config.urls"
-WSGI_APPLICATION = "config.wsgi.application"
-ASGI_APPLICATION = "config.asgi.application"
 
-# ======================
-# Templates
-# ======================
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
@@ -69,31 +62,25 @@ TEMPLATES = [
     },
 ]
 
-# ======================
-# Database (SQLite for dev)
-# ======================
+WSGI_APPLICATION = "config.wsgi.application"
+
+# -----------------------------------------------------------------------------
+# Database (PostgreSQL)
+# -----------------------------------------------------------------------------
 DATABASES = {
     "default": {
-        "ENGINE": "django.db.backends.sqlite3",
-        "NAME": BASE_DIR / "db.sqlite3",
+        "ENGINE": "django.db.backends.postgresql",
+        "NAME": os.getenv("POSTGRES_DB", "asset_ally"),
+        "USER": os.getenv("POSTGRES_USER", ""),
+        "PASSWORD": os.getenv("POSTGRES_PASSWORD", ""),
+        "HOST": os.getenv("POSTGRES_HOST", "localhost"),
+        "PORT": os.getenv("POSTGRES_PORT", "5432"),
     }
 }
 
-# # PostgreSQL example (uncomment and set env vars when ready)
-# DATABASES = {
-#     "default": {
-#         "ENGINE": "django.db.backends.postgresql",
-#         "NAME": os.getenv("POSTGRES_DB", "asset_ally"),
-#         "USER": os.getenv("POSTGRES_USER", "postgres"),
-#         "PASSWORD": os.getenv("POSTGRES_PASSWORD", ""),
-#         "HOST": os.getenv("POSTGRES_HOST", "localhost"),
-#         "PORT": os.getenv("POSTGRES_PORT", "5432"),
-#     }
-# }
-
-# ======================
-# Password validation
-# ======================
+# -----------------------------------------------------------------------------
+# Passwords
+# -----------------------------------------------------------------------------
 AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
     {"NAME": "django.contrib.auth.password_validation.MinimumLengthValidator"},
@@ -101,36 +88,26 @@ AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.NumericPasswordValidator"},
 ]
 
-# ======================
-# Internationalization
-# ======================
+# -----------------------------------------------------------------------------
+# I18N / TZ
+# -----------------------------------------------------------------------------
 LANGUAGE_CODE = "en-us"
-TIME_ZONE = "America/Chicago"   # your local time
+TIME_ZONE = "America/Chicago"
 USE_I18N = True
 USE_TZ = True
 
-# ======================
-# Static & Media
-# ======================
+# -----------------------------------------------------------------------------
+# Static files
+# -----------------------------------------------------------------------------
 STATIC_URL = "static/"
-STATICFILES_DIRS = [BASE_DIR / "main_app" / "static"]  # where your dev static files live
-STATIC_ROOT = BASE_DIR / "staticfiles"                 # collectstatic output (for deploy)
+STATICFILES_DIRS = [BASE_DIR / "main_app" / "static"]
+STATIC_ROOT = BASE_DIR / "staticfiles"
+STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 
-MEDIA_URL = "media/"
-MEDIA_ROOT = BASE_DIR / "media"
+# -----------------------------------------------------------------------------
+# Auth redirects
+# -----------------------------------------------------------------------------
+LOGIN_REDIRECT_URL = os.getenv("LOGIN_REDIRECT_URL", "/")
+LOGOUT_REDIRECT_URL = os.getenv("LOGOUT_REDIRECT_URL", "/")
 
-# ======================
-# Defaults
-# ======================
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
-
-# ======================
-# Deployment notes (uncomment when deploying)
-# ======================
-# CSRF_TRUSTED_ORIGINS = ["https://your-app.onrender.com"]
-# SECURE_SSL_REDIRECT = True
-# SESSION_COOKIE_SECURE = True
-# CSRF_COOKIE_SECURE = True
-# SECURE_HSTS_SECONDS = 31536000
-# SECURE_HSTS_INCLUDE_SUBDOMAINS = True
-# SECURE_HSTS_PRELOAD = True

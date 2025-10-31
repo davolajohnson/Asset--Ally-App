@@ -5,6 +5,10 @@ name = "pypi"
 
 [packages]
 django = "*"
+psycopg = {extras = ["binary"], version = "*"}
+python-dotenv = "*"
+whitenoise = "*"
+gunicorn = "*"
 
 [dev-packages]
 
