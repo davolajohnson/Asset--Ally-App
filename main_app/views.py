@@ -1,6 +1,8 @@
 from django.shortcuts import render
-from django.views.generic import ListView, DetailView, CreateView, UpdateView, DeleteView
 from django.urls import reverse_lazy
+from django.contrib.auth.mixins import LoginRequiredMixin
+from django.views.generic import ListView, DetailView, CreateView, UpdateView, DeleteView
+
 from .models import Device
 
 def home(request):
@@ -17,7 +19,7 @@ class DeviceDetailView(DetailView):
     model = Device
     template_name = 'main_app/chromebooks/detail.html'
 
-class DeviceCreateView(CreateView):
+class DeviceCreateView(LoginRequiredMixin, CreateView):
     model = Device
     fields = ['asset_tag', 'serial_number', 'manufacturer', 'model', 'status', 'condition']
     template_name = 'main_app/chromebooks/form.html'
@@ -29,7 +31,13 @@ class DeviceCreateView(CreateView):
         ctx['button_label'] = 'Create'
         return ctx
 
-class DeviceUpdateView(UpdateView):
+    def form_valid(self, form):
+        # set owner if model has created_by (we add this in step 4)
+        if hasattr(self.model, "created_by"):
+            form.instance.created_by = self.request.user
+        return super().form_valid(form)
+
+class DeviceUpdateView(LoginRequiredMixin, UpdateView):
     model = Device
     fields = ['asset_tag', 'serial_number', 'manufacturer', 'model', 'status', 'condition']
     template_name = 'main_app/chromebooks/form.html'
@@ -41,7 +49,7 @@ class DeviceUpdateView(UpdateView):
         ctx['button_label'] = 'Update'
         return ctx
 
-class DeviceDeleteView(DeleteView):
+class DeviceDeleteView(LoginRequiredMixin, DeleteView):
     model = Device
     template_name = 'main_app/chromebooks/confirm_delete.html'
     success_url = reverse_lazy('device-index')

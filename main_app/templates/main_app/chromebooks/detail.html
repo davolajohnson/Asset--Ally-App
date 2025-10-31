@@ -3,9 +3,13 @@
   <h2>{{ object.asset_tag }} — {{ object.model }}</h2>
   <p><strong>Serial:</strong> {{ object.serial_number }}</p>
   <p><strong>Status:</strong> {{ object.status }} | <strong>Condition:</strong> {{ object.condition }}</p>
+  
   <p>
-    <a href="{% url 'device-update' object.pk %}">Edit</a> |
-    <a href="{% url 'device-delete' object.pk %}">Delete</a> |
+    {% if request.user.is_authenticated and object.created_by_id == request.user.id %}
+      <a href="{% url 'device-update' object.pk %}">Edit</a> |
+      <a href="{% url 'device-delete' object.pk %}">Delete</a> |
+    {% endif %}
     <a href="{% url 'device-index' %}">Back</a>
   </p>
 {% endblock %}
+

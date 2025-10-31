@@ -3,8 +3,8 @@ from .models import Device, Student, Staff, Checkout
 
 @admin.register(Student)
 class StudentAdmin(admin.ModelAdmin):
-    list_display = ("student_id", "last_name", "first_name", "grade_level", "homeroom", "active")
-    list_filter = ("grade_level", "homeroom", "active")
+    list_display = ("student_id", "last_name", "first_name", "grade_level", "active")
+    list_filter = ("grade_level", "active")
     search_fields = ("student_id", "last_name", "first_name", "guardian_name", "guardian_email")
 
 @admin.register(Staff)
@@ -30,3 +30,4 @@ class CheckoutAdmin(admin.ModelAdmin):
         "student__last_name",
         "staff__last_name",
     )
+

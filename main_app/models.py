@@ -1,46 +1,49 @@
-from django.core.exceptions import ValidationError
 from django.db import models
+from django.conf import settings
+from django.core.exceptions import ValidationError
 from django.db.models import Q
 
 
-# -----------------------
-# Core People
-# -----------------------
+# ======================
+#  STUDENT MODEL
+# ======================
 class Student(models.Model):
-    first_name = models.CharField(max_length=60)
-    last_name = models.CharField(max_length=60)
-    student_id = models.CharField(max_length=40, unique=True)
-    grade_level = models.CharField(max_length=10, blank=True)   # e.g., "6", "7", "8"
-    homeroom = models.CharField(max_length=40, blank=True)
+    first_name = models.CharField(max_length=50)
+    last_name = models.CharField(max_length=50)
+    student_id = models.CharField(max_length=20, unique=True)
+    grade_level = models.CharField(max_length=10)
     guardian_name = models.CharField(max_length=100, blank=True)
-    guardian_phone = models.CharField(max_length=40, blank=True)
+    guardian_phone = models.CharField(max_length=20, blank=True)
     guardian_email = models.EmailField(blank=True)
     active = models.BooleanField(default=True)
 
-    class Meta:
-        ordering = ["last_name", "first_name"]
-
     def __str__(self):
-        return f"{self.last_name}, {self.first_name} ({self.student_id})"
+        return f"{self.first_name} {self.last_name} (Grade {self.grade_level})"
 
 
+# ======================
+#  STAFF MODEL
+# ======================
 class Staff(models.Model):
-    first_name = models.CharField(max_length=60)
-    last_name = models.CharField(max_length=60)
+    ROLE_CHOICES = [
+        ("Operations", "Operations"),
+        ("IT", "IT"),
+        ("Teacher", "Teacher"),
+        ("Admin", "Admin"),
+    ]
+    first_name = models.CharField(max_length=50)
+    last_name = models.CharField(max_length=50)
     email = models.EmailField(unique=True)
-    role = models.CharField(max_length=40, blank=True)  # Operations, IT, Teacher, etc.
+    role = models.CharField(max_length=30, choices=ROLE_CHOICES)
     active = models.BooleanField(default=True)
 
-    class Meta:
-        ordering = ["last_name", "first_name"]
-
     def __str__(self):
-        return f"{self.last_name}, {self.first_name}"
+        return f"{self.first_name} {self.last_name} ({self.role})"
 
 
-# -----------------------
-# Devices
-# -----------------------
+# ======================
+#  DEVICE MODEL
+# ======================
 class Device(models.Model):
     STATUS_CHOICES = [
         ("AVAILABLE", "Available"),
@@ -49,6 +52,7 @@ class Device(models.Model):
         ("LOST", "Lost"),
         ("RETIRED", "Retired"),
     ]
+
     CONDITION_CHOICES = [
         ("NEW", "New"),
         ("GOOD", "Good"),
@@ -60,69 +64,73 @@ class Device(models.Model):
     serial_number = models.CharField(max_length=60, unique=True)
     manufacturer = models.CharField(max_length=60, blank=True)
     model = models.CharField(max_length=80, blank=True)
+    purchase_date = models.DateField(null=True, blank=True)
+    warranty_expires_on = models.DateField(null=True, blank=True)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="AVAILABLE")
     condition = models.CharField(max_length=10, choices=CONDITION_CHOICES, default="GOOD")
     notes = models.TextField(blank=True)
 
-    class Meta:
-        ordering = ["asset_tag"]
+    # GA Requirement: Link to User who created the record
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name="devices"
+    )
 
     def __str__(self):
         return f"{self.asset_tag} — {self.model or 'Device'}"
 
+    class Meta:
+        ordering = ["asset_tag"]
 
-# -----------------------
-# Checkouts (loan history)
-# -----------------------
+
+# ======================
+#  CHECKOUT MODEL
+# ======================
 class Checkout(models.Model):
-    device = models.ForeignKey(Device, on_delete=models.PROTECT, related_name="checkouts")
-    student = models.ForeignKey(Student, null=True, blank=True, on_delete=models.PROTECT, related_name="checkouts")
-    staff = models.ForeignKey(Staff, null=True, blank=True, on_delete=models.PROTECT, related_name="checkouts")
+    CONDITION_CHOICES = [
+        ("NEW", "New"),
+        ("GOOD", "Good"),
+        ("FAIR", "Fair"),
+        ("POOR", "Poor"),
+    ]
+
+    device = models.ForeignKey(Device, on_delete=models.CASCADE, related_name="checkouts")
+    student = models.ForeignKey(Student, on_delete=models.CASCADE, null=True, blank=True, related_name="checkouts")
+    staff = models.ForeignKey(Staff, on_delete=models.CASCADE, null=True, blank=True, related_name="checkouts")
 
     checked_out_at = models.DateTimeField(auto_now_add=True)
     due_back_at = models.DateField(null=True, blank=True)
     returned_at = models.DateTimeField(null=True, blank=True)
-
-    condition_out = models.CharField(max_length=10, blank=True)  # NEW|GOOD|FAIR|POOR
-    condition_in = models.CharField(max_length=10, blank=True)   # on return
+    condition_out = models.CharField(max_length=10, choices=CONDITION_CHOICES)
+    condition_in = models.CharField(max_length=10, choices=CONDITION_CHOICES, null=True, blank=True)
     comments = models.TextField(blank=True)
 
     class Meta:
-        # DB-level backstop: only one open checkout per device
         constraints = [
             models.UniqueConstraint(
                 fields=["device"],
-                name="uniq_device_open_checkout",
                 condition=Q(returned_at__isnull=True),
+                name="unique_open_checkout_per_device"
             )
         ]
         ordering = ["-checked_out_at"]
 
     def clean(self):
-        """
-        App-level guard to prevent a second open (returned_at IS NULL) checkout for the same device.
-        Triggers a form error in Admin/Forms and blocks programmatic saves too (via save()).
-        """
-        # if this row is marked returned, it's not "open" — nothing to check
-        if self.returned_at is not None:
-            return
-
-        # there must be EITHER a student OR a staff member
-        if not self.student and not self.staff:
-            raise ValidationError({"student": "Select a Student or Staff for this checkout."})
-
-        # find other open checkouts for this device
-        qs = Checkout.objects.filter(device=self.device, returned_at__isnull=True)
-        if self.pk:
-            qs = qs.exclude(pk=self.pk)
-        if qs.exists():
-            raise ValidationError({"device": "This device already has an open checkout. Return it first."})
+        # Prevent multiple open checkouts for same device
+        if not self.returned_at:
+            open_checkouts = Checkout.objects.filter(device=self.device, returned_at__isnull=True)
+            if self.pk:
+                open_checkouts = open_checkouts.exclude(pk=self.pk)
+            if open_checkouts.exists():
+                raise ValidationError(f"{self.device} is already checked out.")
 
     def save(self, *args, **kwargs):
-        # Ensure validation always runs (Admin forms call clean, but direct saves may not)
-        self.full_clean()
+        self.full_clean()  # run validation before saving
         super().save(*args, **kwargs)
 
     def __str__(self):
-        who = self.student or self.staff
-        return f"{self.device.asset_tag} → {who} @ {self.checked_out_at:%Y-%m-%d %H:%M}"
+        borrower = self.student or self.staff
+        return f"{self.device.asset_tag} → {borrower} ({'Returned' if self.returned_at else 'Out'})"
