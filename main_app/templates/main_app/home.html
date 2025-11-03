@@ -1,5 +1,26 @@
 {% extends 'main_app/base.html' %}
 {% block content %}
-  <h2>Welcome to Asset Ally</h2>
-  <p>Chromebook & device management made simple.</p>
+  <section class="hero">
+    <h2>Welcome to Asset Ally</h2>
+    <p>Manage Chromebooks & school devices from a single, calm dashboard.</p>
+    <p>Assign devices, track checkouts, and keep your fleet healthy.</p>
+    <p style="margin-top: .75rem;">
+      <a class="btn" href="{% url 'device-index' %}">View Devices</a>
+      <a class="btn" href="{% url 'device-create' %}" style="margin-left:.5rem;">Add Device</a>
+    </p>
+  </section>
+  <div class="container">
+    <div class="card">
+      <h3>Fast Checkouts</h3>
+      <p>Assign a device to a student or staff member in seconds.</p>
+    </div>
+    <div class="card">
+      <h3>Real Accountability</h3>
+      <p>One open checkout per device, enforced at the data layer.</p>
+    </div>
+    <div class="card">
+      <h3>Built for Schools</h3>
+      <p>Students, Staff, and Devices — everything you need, nothing you don’t.</p>
+    </div>
+  </div>
 {% endblock %}

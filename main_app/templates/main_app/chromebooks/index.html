@@ -1,18 +1,19 @@
 {% extends 'main_app/base.html' %}
 {% block content %}
   <h2>Devices</h2>
-  {% if object_list %}
-    <ul>
-      {% for device in object_list %}
-        <li>
-          <a href="{% url 'device-detail' device.pk %}">
-            {{ device.asset_tag }} — {{ device.model }}
-          </a>
-        </li>
+  {% if devices %}
+    <div class="container">
+      {% for d in devices %}
+        <div class="card">
+          <h3>{{ d.asset_tag }} — {{ d.model }}</h3>
+          <p><strong>Status:</strong> {{ d.status }} | <strong>Condition:</strong> {{ d.condition }}</p>
+          <p><a class="btn" href="{% url 'device-detail' d.pk %}">View</a></p>
+        </div>
       {% endfor %}
-    </ul>
+    </div>
   {% else %}
     <p>No devices yet.</p>
   {% endif %}
-  <p><a href="{% url 'device-create' %}">Add device</a></p>
+  <p style="margin-top:1rem;"><a class="btn" href="{% url 'device-create' %}">Add device</a></p>
 {% endblock %}
+

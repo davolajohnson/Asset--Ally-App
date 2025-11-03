@@ -52,7 +52,6 @@ class Device(models.Model):
         ("LOST", "Lost"),
         ("RETIRED", "Retired"),
     ]
-
     CONDITION_CHOICES = [
         ("NEW", "New"),
         ("GOOD", "Good"),
@@ -60,8 +59,8 @@ class Device(models.Model):
         ("POOR", "Poor"),
     ]
 
-    asset_tag = models.CharField(max_length=40, unique=True)
-    serial_number = models.CharField(max_length=60, unique=True)
+    asset_tag = models.CharField(max_length=40, unique=True, db_index=True)
+    serial_number = models.CharField(max_length=60, unique=True, db_index=True)
     manufacturer = models.CharField(max_length=60, blank=True)
     model = models.CharField(max_length=80, blank=True)
     purchase_date = models.DateField(null=True, blank=True)
@@ -70,20 +69,20 @@ class Device(models.Model):
     condition = models.CharField(max_length=10, choices=CONDITION_CHOICES, default="GOOD")
     notes = models.TextField(blank=True)
 
-    # GA Requirement: Link to User who created the record
+    # Link to User who created the record (authorization / ownership)
     created_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,
-        on_delete=models.PROTECT,
+        on_delete=models.PROTECT,   # keep as PROTECT per your current choice
         null=True,
         blank=True,
-        related_name="devices"
+        related_name="devices",
     )
-
-    def __str__(self):
-        return f"{self.asset_tag} — {self.model or 'Device'}"
 
     class Meta:
         ordering = ["asset_tag"]
+
+    def __str__(self):
+        return f"{self.asset_tag} — {self.model or 'Device'}"
 
 
 # ======================
@@ -98,8 +97,12 @@ class Checkout(models.Model):
     ]
 
     device = models.ForeignKey(Device, on_delete=models.CASCADE, related_name="checkouts")
-    student = models.ForeignKey(Student, on_delete=models.CASCADE, null=True, blank=True, related_name="checkouts")
-    staff = models.ForeignKey(Staff, on_delete=models.CASCADE, null=True, blank=True, related_name="checkouts")
+    student = models.ForeignKey(
+        Student, on_delete=models.CASCADE, null=True, blank=True, related_name="checkouts"
+    )
+    staff = models.ForeignKey(
+        Staff, on_delete=models.CASCADE, null=True, blank=True, related_name="checkouts"
+    )
 
     checked_out_at = models.DateTimeField(auto_now_add=True)
     due_back_at = models.DateField(null=True, blank=True)
@@ -109,17 +112,27 @@ class Checkout(models.Model):
     comments = models.TextField(blank=True)
 
     class Meta:
+        # Postgres partial unique index: only one open checkout per device
         constraints = [
             models.UniqueConstraint(
                 fields=["device"],
                 condition=Q(returned_at__isnull=True),
-                name="unique_open_checkout_per_device"
+                name="unique_open_checkout_per_device",
             )
         ]
         ordering = ["-checked_out_at"]
 
+    @property
+    def borrower(self):
+        return self.student or self.staff
+
     def clean(self):
-        # Prevent multiple open checkouts for same device
+        # (1) Exactly one borrower: either a student OR a staff member
+        if bool(self.student) == bool(self.staff):
+            # either both set or both empty → invalid
+            raise ValidationError("Assign this checkout to exactly one borrower: a Student OR a Staff member.")
+
+        # (2) Prevent multiple open checkouts for the same device
         if not self.returned_at:
             open_checkouts = Checkout.objects.filter(device=self.device, returned_at__isnull=True)
             if self.pk:
@@ -132,5 +145,5 @@ class Checkout(models.Model):
         super().save(*args, **kwargs)
 
     def __str__(self):
-        borrower = self.student or self.staff
-        return f"{self.device.asset_tag} → {borrower} ({'Returned' if self.returned_at else 'Out'})"
+        status = "Returned" if self.returned_at else "Out"
+        return f"{self.device.asset_tag} → {self.borrower} ({status})"
