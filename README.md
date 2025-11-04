@@ -61,13 +61,6 @@ Asset Ally simplifies this process — making it easy to assign, track, and repo
 
 ## 🧭 Getting Started (Local Development)
 
-### 1️⃣ Clone & Install
-```bash
-git clone https://github.com/davolajohnson/Asset--Ally-App.git
-cd Asset--Ally-App
-pip install -r requirements.txt
-
-
  Future Enhancements
  Email notifications for upcoming due dates
  Barcode scanning for asset tags
