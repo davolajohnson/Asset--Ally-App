@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% block content %}
+<section>
+  <h1>Dashboard</h1>
+  <div class="grid cards">
+    <article class="card">
+      <h2>Students</h2>
+      <p class="count">{{ students_count }}</p>
+    </article>
+    <article class="card">
+      <h2>Available devices</h2>
+      <p class="count">{{ devices_available }}</p>
+    </article>
+    <article class="card">
+      <h2>Checked out</h2>
+      <p class="count">{{ devices_out }}</p>
+    </article>
+  </div>
+</section>
+
+<section class="grid-two">
+  <div>
+    <h2>Due today</h2>
+    {% if due_today %}
+      <ul class="simple-list">
+      {% for checkout in due_today %}
+        <li>
+          <strong>{{ checkout.device.asset_tag }}</strong>
+          → {{ checkout.borrower }}
+          (due {{ checkout.due_back_at }})
+        </li>
+      {% endfor %}
+      </ul>
+    {% else %}
+      <p>No devices due today.</p>
+    {% endif %}
+  </div>
+
+  <div>
+    <h2>Overdue</h2>
+    {% if overdue %}
+      <ul class="simple-list">
+      {% for checkout in overdue %}
+        <li class="overdue">
+          <strong>{{ checkout.device.asset_tag }}</strong>
+          → {{ checkout.borrower }}
+          (due {{ checkout.due_back_at }})
+        </li>
+      {% endfor %}
+      </ul>
+    {% else %}
+      <p>No overdue devices. 🎉</p>
+    {% endif %}
+  </div>
+</section>
+{% endblock %}

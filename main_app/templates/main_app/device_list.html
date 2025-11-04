@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="list-header">
+  <h1>Devices</h1>
+  <div class="list-actions">
+    <form method="get" class="search-form">
+      <input type="search" name="q" value="{{ request.GET.q }}" placeholder="Search devices">
+      <button class="btn btn-secondary" type="submit">Search</button>
+    </form>
+    <a href="{% url 'device-create' %}" class="btn btn-primary">+ Add device</a>
+  </div>
+</section>
+
+<section>
+  {% if object_list %}
+  <table class="table">
+    <thead>
+      <tr>
+        <th>Asset tag</th>
+        <th>Serial</th>
+        <th>Model</th>
+        <th>Status</th>
+        <th>Condition</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for device in object_list %}
+      <tr>
+        <td><a href="{% url 'device-detail' device.pk %}">{{ device.asset_tag }}</a></td>
+        <td>{{ device.serial_number }}</td>
+        <td>{{ device.model }}</td>
+        <td>{{ device.get_status_display }}</td>
+        <td>{{ device.get_condition_display }}</td>
+        <td>
+          {% if device.created_by_id == request.user.id %}
+            <a class="btn btn-small" href="{% url 'device-update' device.pk %}">Edit</a>
+            <a class="btn btn-small btn-danger" href="{% url 'device-delete' device.pk %}">Delete</a>
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+    <p>No devices yet. <a href="{% url 'device-create' %}">Add your first device</a>.</p>
+  {% endif %}
+</section>
+{% endblock %}

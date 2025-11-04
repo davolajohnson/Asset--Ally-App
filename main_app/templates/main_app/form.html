@@ -1,7 +1,14 @@
 {% extends "base.html" %}
 {% block content %}
 <section class="form-card">
-  <h1>{{ view.model._meta.verbose_name|title }}</h1>
+  <h1>
+    {% if object %}
+      Edit item
+    {% else %}
+      Create item
+    {% endif %}
+  </h1>
+
   <form method="post" class="form">
     {% csrf_token %}
     {{ form.as_p }}

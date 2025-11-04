@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="list-header">
+  <h1>Checkouts</h1>
+  <div class="list-actions">
+    <a href="{% url 'checkout-create' %}" class="btn btn-primary">+ New checkout</a>
+  </div>
+</section>
+
+<section>
+  {% if object_list %}
+  <table class="table">
+    <thead>
+      <tr>
+        <th>Device</th>
+        <th>Borrower</th>
+        <th>Checked out</th>
+        <th>Due</th>
+        <th>Returned</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for checkout in object_list %}
+      <tr>
+        <td><a href="{% url 'checkout-detail' checkout.pk %}">{{ checkout.device.asset_tag }}</a></td>
+        <td>{{ checkout.borrower }}</td>
+        <td>{{ checkout.checked_out_at|date:"Y-m-d H:i" }}</td>
+        <td>{{ checkout.due_back_at|default:"—" }}</td>
+        <td>{{ checkout.returned_at|date:"Y-m-d H:i"|default:"—" }}</td>
+        <td>
+          {% if checkout.created_by_id == request.user.id %}
+            <a class="btn btn-small" href="{% url 'checkout-update' checkout.pk %}">Edit</a>
+            <a class="btn btn-small btn-danger" href="{% url 'checkout-delete' checkout.pk %}">Delete</a>
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+    <p>No checkouts yet. <a href="{% url 'checkout-create' %}">Create one</a>.</p>
+  {% endif %}
+</section>
+{% endblock %}

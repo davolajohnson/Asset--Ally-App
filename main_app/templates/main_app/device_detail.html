@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="card">
+  <h1>Device: {{ object.asset_tag }}</h1>
+  <p><strong>Model:</strong> {{ object.model }}</p>
+  <p><strong>Serial Number:</strong> {{ object.serial_number }}</p>
+  <p><strong>Condition:</strong> {{ object.get_condition_display }}</p>
+  <p><strong>Status:</strong> {{ object.get_status_display }}</p>
+  <p><strong>Notes:</strong> {{ object.notes|default:"(none)" }}</p>
+
+  <div class="card-actions">
+    <a href="{% url 'device-list' %}" class="btn btn-secondary">Back to Devices</a>
+
+    {% if object.created_by == user %}
+      <a href="{% url 'device-update' object.pk %}" class="btn btn-primary">Edit</a>
+      <a href="{% url 'device-delete' object.pk %}" class="btn btn-danger">Delete</a>
+    {% endif %}
+  </div>
+</section>
+{% endblock %}

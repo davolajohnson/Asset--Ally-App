@@ -1,9 +1,16 @@
-{% extends "main_app/base.html" %}
+{% extends "base.html" %}
 {% block content %}
-  <h2>Sign in</h2>
-  <form method="post">
+<section class="auth-card">
+  <h1>Sign in to Asset Ally</h1>
+
+  {% if form.errors %}
+    <p class="error-text">Your username and password didn’t match. Please try again.</p>
+  {% endif %}
+
+  <form method="post" class="form">
     {% csrf_token %}
     {{ form.as_p }}
-    <button>Log in</button>
+    <button type="submit" class="btn btn-primary">Sign in</button>
   </form>
+</section>
 {% endblock %}

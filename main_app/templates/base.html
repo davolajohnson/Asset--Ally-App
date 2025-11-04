@@ -1,0 +1,47 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Asset Ally</title>
+  <link rel="stylesheet" href="{% static 'css/style.css' %}">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body>
+  <header class="site-header">
+    <div class="brand">
+      <a href="{% url 'dashboard' %}" class="brand-link">Asset Ally</a>
+      <span class="brand-subtitle">Chromebook &amp; device manager</span>
+    </div>
+    {% if user.is_authenticated %}
+   <nav class="nav">
+  <a href="{% url 'dashboard' %}">Dashboard</a>
+  <a href="{% url 'student-list' %}">Students</a>
+  <a href="{% url 'device-list' %}">Devices</a>
+  <a href="{% url 'checkout-list' %}">Checkouts</a>
+  <form method="post" action="{% url 'logout' %}">
+    {% csrf_token %}
+    <button type="submit" class="nav-logout btn">Log out</button>
+  </form>
+</nav>
+
+    {% endif %}
+  </header>
+
+  <main class="site-main">
+    {% if messages %}
+      <ul class="messages">
+        {% for message in messages %}
+          <li class="message message-{{ message.tags }}">{{ message }}</li>
+        {% endfor %}
+      </ul>
+    {% endif %}
+    {% block content %}{% endblock %}
+  </main>
+
+  <footer class="site-footer">
+    <p>&copy; {{ now|date:"Y" }} Asset Ally</p>
+  </footer>
+</body>
+</html>
+

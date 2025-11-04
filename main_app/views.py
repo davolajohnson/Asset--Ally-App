@@ -1,107 +1,265 @@
-from django.shortcuts import render
-from django.urls import reverse_lazy
-from django.http import Http404
-from django.contrib import messages
+# main_app/views.py
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django.urls import reverse_lazy
+from django.utils import timezone
 from django.views.generic import (
+    TemplateView,
     ListView,
     DetailView,
     CreateView,
     UpdateView,
     DeleteView,
 )
+from django.db.models import Q
 
-from .models import Device
-
-
-# ---------- Simple pages ----------
-def home(request):
-    return render(request, "main_app/home.html")
+from .models import Student, Staff, Device, Checkout
 
 
-def about(request):
-    return render(request, "main_app/about.html")
+class DashboardView(LoginRequiredMixin, TemplateView):
+    template_name = "main_app/dashboard.html"
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        user = self.request.user
+        ctx["students_count"] = Student.objects.filter(created_by=user).count()
+        ctx["devices_available"] = Device.objects.filter(
+            created_by=user, status="AVAILABLE"
+        ).count()
+        ctx["devices_out"] = Device.objects.filter(
+            created_by=user, status="CHECKED_OUT"
+        ).count()
+        today = timezone.now().date()
+        ctx["due_today"] = Checkout.objects.filter(
+            created_by=user, due_back_at=today, returned_at__isnull=True
+        )
+        ctx["overdue"] = Checkout.objects.filter(
+            created_by=user, due_back_at__lt=today, returned_at__isnull=True
+        )
+        return ctx
 
 
-# ---------- Owner-only Mixin ----------
-class OwnerOnlyMixin:
-    """
-    Restrict updates/deletes to the user who created the object.
-    If the model has a `created_by` field and it doesn't match the
-    current user, respond with 404.
-    """
-    def get_object(self, queryset=None):
-        obj = super().get_object(queryset)
-        if hasattr(obj, "created_by") and obj.created_by_id and obj.created_by_id != self.request.user.id:
-            raise Http404("Not found")
-        return obj
-
-
-# ---------- Device Views ----------
-class DeviceListView(ListView):
-    model = Device
-    template_name = "main_app/chromebooks/index.html"
-    context_object_name = "devices"
-    paginate_by = 20  # optional: paginates if you add lots of devices
+# ======================
+#  STUDENT VIEWS
+# ======================
+class StudentList(LoginRequiredMixin, ListView):
+    model = Student
+    template_name = "main_app/student_list.html"
 
     def get_queryset(self):
-        # Show all devices (readable by anyone).
-        # If you prefer to show only the current user's devices, uncomment the filter below.
-        qs = Device.objects.all().order_by("asset_tag")
-        # if self.request.user.is_authenticated:
-        #     qs = qs.filter(created_by=self.request.user)
+        qs = super().get_queryset().filter(created_by=self.request.user)
+        q = self.request.GET.get("q")
+        if q:
+            qs = qs.filter(
+                Q(first_name__icontains=q)
+                | Q(last_name__icontains=q)
+                | Q(student_id__icontains=q)
+            )
         return qs
 
 
-class DeviceDetailView(DetailView):
-    model = Device
-    template_name = "main_app/chromebooks/detail.html"
-    context_object_name = "device"
+class StudentDetail(LoginRequiredMixin, DetailView):
+    model = Student
+    template_name = "main_app/student_detail.html"
+
+    def get_queryset(self):
+        return super().get_queryset().filter(created_by=self.request.user)
 
 
-class DeviceCreateView(LoginRequiredMixin, CreateView):
-    model = Device
-    fields = ["asset_tag", "serial_number", "manufacturer", "model", "status", "condition", "notes"]
-    template_name = "main_app/chromebooks/form.html"
-    success_url = reverse_lazy("device-index")
-
-    def form_valid(self, form):
-        # Tag the creator for authorization rules & audit
-        if hasattr(self.model, "created_by"):
-            form.instance.created_by = self.request.user
-        messages.success(self.request, "✅ Device created.")
-        return super().form_valid(form)
-
-    def get_context_data(self, **kwargs):
-        ctx = super().get_context_data(**kwargs)
-        # helpful labels for the shared form template
-        ctx["action_label"] = "Create Device"
-        ctx["button_label"] = "Create"
-        return ctx
-
-
-class DeviceUpdateView(LoginRequiredMixin, OwnerOnlyMixin, UpdateView):
-    model = Device
-    fields = ["asset_tag", "serial_number", "manufacturer", "model", "status", "condition", "notes"]
-    template_name = "main_app/chromebooks/form.html"
-    success_url = reverse_lazy("device-index")
+class StudentCreate(LoginRequiredMixin, CreateView):
+    model = Student
+    fields = [
+        "first_name",
+        "last_name",
+        "student_id",
+        "grade_level",
+        "guardian_name",
+        "guardian_phone",
+        "guardian_email",
+        "active",
+    ]
+    template_name = "main_app/form.html"
 
     def form_valid(self, form):
-        messages.success(self.request, "✏️ Device updated.")
+        form.instance.created_by = self.request.user
         return super().form_valid(form)
 
-    def get_context_data(self, **kwargs):
-        ctx = super().get_context_data(**kwargs)
-        ctx["action_label"] = "Update Device"
-        ctx["button_label"] = "Update"
-        return ctx
+
+class StudentUpdate(LoginRequiredMixin, UpdateView):
+    model = Student
+    fields = [
+        "first_name",
+        "last_name",
+        "student_id",
+        "grade_level",
+        "guardian_name",
+        "guardian_phone",
+        "guardian_email",
+        "active",
+    ]
+    template_name = "main_app/form.html"
+
+    def get_queryset(self):
+        return super().get_queryset().filter(created_by=self.request.user)
 
 
-class DeviceDeleteView(LoginRequiredMixin, OwnerOnlyMixin, DeleteView):
+class StudentDelete(LoginRequiredMixin, DeleteView):
+    model = Student
+    success_url = reverse_lazy("student-list")
+    template_name = "main_app/confirm_delete.html"
+
+    def get_queryset(self):
+        return super().get_queryset().filter(created_by=self.request.user)
+
+
+# ======================
+#  DEVICE VIEWS
+# ======================
+class DeviceList(LoginRequiredMixin, ListView):
     model = Device
-    template_name = "main_app/chromebooks/confirm_delete.html"
-    success_url = reverse_lazy("device-index")
+    template_name = "main_app/device_list.html"
 
-    def delete(self, request, *args, **kwargs):
-        messages.success(self.request, "🗑️ Device deleted.")
-        return super().delete(request, *args, **kwargs)
+    def get_queryset(self):
+        qs = super().get_queryset().filter(created_by=self.request.user)
+        q = self.request.GET.get("q")
+        if q:
+            qs = qs.filter(
+                Q(asset_tag__icontains=q)
+                | Q(serial_number__icontains=q)
+                | Q(model__icontains=q)
+            )
+        return qs
+
+
+class DeviceDetail(LoginRequiredMixin, DetailView):
+    model = Device
+    template_name = "main_app/device_detail.html"
+
+    def get_queryset(self):
+        return super().get_queryset().filter(created_by=self.request.user)
+
+
+class DeviceCreate(LoginRequiredMixin, CreateView):
+    model = Device
+    fields = [
+        "asset_tag",
+        "serial_number",
+        "manufacturer",
+        "model",
+        "purchase_date",
+        "warranty_expires_on",
+        "status",
+        "condition",
+        "notes",
+    ]
+    template_name = "main_app/form.html"
+
+    def form_valid(self, form):
+        form.instance.created_by = self.request.user
+        return super().form_valid(form)
+
+
+class DeviceUpdate(LoginRequiredMixin, UpdateView):
+    model = Device
+    fields = [
+        "asset_tag",
+        "serial_number",
+        "manufacturer",
+        "model",
+        "purchase_date",
+        "warranty_expires_on",
+        "status",
+        "condition",
+        "notes",
+    ]
+    template_name = "main_app/form.html"
+
+    def get_queryset(self):
+        return super().get_queryset().filter(created_by=self.request.user)
+
+
+class DeviceDelete(LoginRequiredMixin, DeleteView):
+    model = Device
+    success_url = reverse_lazy("device-list")
+    template_name = "main_app/confirm_delete.html"
+
+    def get_queryset(self):
+        return super().get_queryset().filter(created_by=self.request.user)
+
+
+# ======================
+#  CHECKOUT VIEWS
+# ======================
+class CheckoutList(LoginRequiredMixin, ListView):
+    model = Checkout
+    template_name = "main_app/checkout_list.html"
+
+    def get_queryset(self):
+        return super().get_queryset().filter(created_by=self.request.user)
+
+
+class CheckoutDetail(LoginRequiredMixin, DetailView):
+    model = Checkout
+    template_name = "main_app/checkout_detail.html"
+
+    def get_queryset(self):
+        return super().get_queryset().filter(created_by=self.request.user)
+
+
+class CheckoutCreate(LoginRequiredMixin, CreateView):
+    model = Checkout
+    fields = [
+        "device",
+        "student",
+        "staff",
+        "due_back_at",
+        "condition_out",
+        "comments",
+    ]
+    template_name = "main_app/form.html"
+
+    def form_valid(self, form):
+        form.instance.created_by = self.request.user
+        resp = super().form_valid(form)
+        device = self.object.device
+        device.status = "CHECKED_OUT"
+        device.save(update_fields=["status"])
+        return resp
+
+
+class CheckoutUpdate(LoginRequiredMixin, UpdateView):
+    model = Checkout
+    fields = [
+        "device",
+        "student",
+        "staff",
+        "due_back_at",
+        "returned_at",
+        "condition_out",
+        "condition_in",
+        "comments",
+    ]
+    template_name = "main_app/form.html"
+
+    def get_queryset(self):
+        return super().get_queryset().filter(created_by=self.request.user)
+
+    def form_valid(self, form):
+        was_returned = (
+            form.instance.returned_at is None
+            and form.cleaned_data.get("returned_at") is not None
+        )
+        resp = super().form_valid(form)
+        if was_returned:
+            device = self.object.device
+            device.status = "AVAILABLE"
+            device.save(update_fields=["status"])
+        return resp
+
+
+class CheckoutDelete(LoginRequiredMixin, DeleteView):
+    model = Checkout
+    success_url = reverse_lazy("checkout-list")
+    template_name = "main_app/confirm_delete.html"
+
+    def get_queryset(self):
+        return super().get_queryset().filter(created_by=self.request.user)

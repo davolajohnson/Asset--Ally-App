@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="card">
+  <h1>Checkout Details</h1>
+  <p><strong>Device:</strong> {{ object.device.asset_tag }}</p>
+  <p><strong>Borrower:</strong> {{ object.borrower }}</p>
+  <p><strong>Checked Out At:</strong> {{ object.checked_out_at }}</p>
+  <p><strong>Due Back:</strong> {{ object.due_back_at|default:"(no due date)" }}</p>
+  <p><strong>Status:</strong>
+    {% if object.returned_at %}
+      Returned on {{ object.returned_at }}
+    {% else %}
+      Still Checked Out
+    {% endif %}
+  </p>
+
+  <div class="card-actions">
+    <a href="{% url 'checkout-list' %}" class="btn btn-secondary">Back to Checkouts</a>
+
+    {% if object.created_by == user %}
+      <a href="{% url 'checkout-update' object.pk %}" class="btn btn-primary">Edit</a>
+      <a href="{% url 'checkout-delete' object.pk %}" class="btn btn-danger">Delete</a>
+    {% endif %}
+  </div>
+</section>
+{% endblock %}
+

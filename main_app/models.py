@@ -2,6 +2,7 @@ from django.db import models
 from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.db.models import Q
+from django.urls import reverse
 
 
 # ======================
@@ -17,8 +18,21 @@ class Student(models.Model):
     guardian_email = models.EmailField(blank=True)
     active = models.BooleanField(default=True)
 
+    # Link to user who created this student
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name="students",
+    )
+
     def __str__(self):
         return f"{self.first_name} {self.last_name} (Grade {self.grade_level})"
+
+    def get_absolute_url(self):
+        # After creating/updating a student, go to its detail page
+        return reverse("student-detail", args=[self.pk])
 
 
 # ======================
@@ -36,6 +50,15 @@ class Staff(models.Model):
     email = models.EmailField(unique=True)
     role = models.CharField(max_length=30, choices=ROLE_CHOICES)
     active = models.BooleanField(default=True)
+
+    # Optional link to user who created this staff record
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name="staff_members",
+    )
 
     def __str__(self):
         return f"{self.first_name} {self.last_name} ({self.role})"
@@ -72,7 +95,7 @@ class Device(models.Model):
     # Link to User who created the record (authorization / ownership)
     created_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,
-        on_delete=models.PROTECT,   # keep as PROTECT per your current choice
+        on_delete=models.PROTECT,
         null=True,
         blank=True,
         related_name="devices",
@@ -83,6 +106,9 @@ class Device(models.Model):
 
     def __str__(self):
         return f"{self.asset_tag} — {self.model or 'Device'}"
+
+    def get_absolute_url(self):
+        return reverse("device-detail", args=[self.pk])
 
 
 # ======================
@@ -111,6 +137,15 @@ class Checkout(models.Model):
     condition_in = models.CharField(max_length=10, choices=CONDITION_CHOICES, null=True, blank=True)
     comments = models.TextField(blank=True)
 
+    # Link to user who created this checkout
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name="checkouts",
+    )
+
     class Meta:
         # Postgres partial unique index: only one open checkout per device
         constraints = [
@@ -129,8 +164,9 @@ class Checkout(models.Model):
     def clean(self):
         # (1) Exactly one borrower: either a student OR a staff member
         if bool(self.student) == bool(self.staff):
-            # either both set or both empty → invalid
-            raise ValidationError("Assign this checkout to exactly one borrower: a Student OR a Staff member.")
+            raise ValidationError(
+                "Assign this checkout to exactly one borrower: a Student OR a Staff member."
+            )
 
         # (2) Prevent multiple open checkouts for the same device
         if not self.returned_at:
@@ -147,3 +183,6 @@ class Checkout(models.Model):
     def __str__(self):
         status = "Returned" if self.returned_at else "Out"
         return f"{self.device.asset_tag} → {self.borrower} ({status})"
+
+    def get_absolute_url(self):
+        return reverse("checkout-detail", args=[self.pk])

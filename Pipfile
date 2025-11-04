@@ -9,6 +9,7 @@ psycopg = {extras = ["binary"], version = "*"}
 python-dotenv = "*"
 whitenoise = "*"
 gunicorn = "*"
+dj-database-url = "*"
 
 [dev-packages]
 

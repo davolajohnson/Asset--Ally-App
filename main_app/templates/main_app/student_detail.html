@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="card">
+  <h1>{{ object.first_name }} {{ object.last_name }}</h1>
+  <p><strong>Student ID:</strong> {{ object.student_id }}</p>
+  <p><strong>Grade Level:</strong> {{ object.grade_level }}</p>
+  <p><strong>Guardian Name:</strong> {{ object.guardian_name }}</p>
+  <p><strong>Guardian Phone:</strong> {{ object.guardian_phone }}</p>
+  <p><strong>Guardian Email:</strong> {{ object.guardian_email }}</p>
+
+  <div class="card-actions">
+    <a href="{% url 'student-list' %}" class="btn btn-secondary">Back to Students</a>
+
+    {% if object.created_by == user %}
+      <a href="{% url 'student-update' object.pk %}" class="btn btn-primary">Edit</a>
+      <a href="{% url 'student-delete' object.pk %}" class="btn btn-danger">Delete</a>
+    {% endif %}
+  </div>
+</section>
+{% endblock %}
