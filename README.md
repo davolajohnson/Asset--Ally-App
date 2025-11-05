@@ -44,8 +44,10 @@ Asset Ally simplifies this process — making it easy to assign, track, and repo
 ---
 
 ## 📸 Screenshot
-*(Add your screenshot once deployed)*
-![App Screenshot](docs/screenshot.png)
+
+### Dashboard View
+![Asset Ally Dashboard](Asset%20Ally.jpeg)
+
 
 ---
 
