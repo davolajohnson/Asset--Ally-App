@@ -18,7 +18,7 @@ class Student(models.Model):
     guardian_email = models.EmailField(blank=True)
     active = models.BooleanField(default=True)
 
-    # Link to user who created this student
+    
     created_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.PROTECT,
@@ -31,7 +31,6 @@ class Student(models.Model):
         return f"{self.first_name} {self.last_name} (Grade {self.grade_level})"
 
     def get_absolute_url(self):
-        # After creating/updating a student, go to its detail page
         return reverse("student-detail", args=[self.pk])
 
 
@@ -51,7 +50,7 @@ class Staff(models.Model):
     role = models.CharField(max_length=30, choices=ROLE_CHOICES)
     active = models.BooleanField(default=True)
 
-    # Optional link to user who created this staff record
+    
     created_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.PROTECT,
@@ -92,7 +91,7 @@ class Device(models.Model):
     condition = models.CharField(max_length=10, choices=CONDITION_CHOICES, default="GOOD")
     notes = models.TextField(blank=True)
 
-    # Link to User who created the record (authorization / ownership)
+    
     created_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.PROTECT,
@@ -177,7 +176,7 @@ class Checkout(models.Model):
                 raise ValidationError(f"{self.device} is already checked out.")
 
     def save(self, *args, **kwargs):
-        self.full_clean()  # run validation before saving
+        self.full_clean()  
         super().save(*args, **kwargs)
 
     def __str__(self):

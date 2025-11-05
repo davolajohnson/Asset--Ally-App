@@ -64,12 +64,24 @@ WSGI_APPLICATION = "config.wsgi.application"
 
 # Database
 # Use DATABASE_URL if provided, otherwise default to local sqlite
-DATABASES = {
-    "default": dj_database_url.parse(
-        os.getenv("DATABASE_URL", f"sqlite:///{BASE_DIR / 'db.sqlite3'}"),
-        conn_max_age=600,
-    )
-}
+if 'ON_HEROKU' in os.environ:
+    DATABASES = {
+        "default": dj_database_url.config(
+            env='DATABASE_URL',
+            conn_max_age=600,
+            conn_health_checks=True,
+            ssl_require=True,
+        ),
+    }
+else:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': '<dbnamehere>',
+            # The value of 'NAME' should match the value of 'NAME' you replaced.
+        }
+    }
+
 
 # Password validation
 AUTH_PASSWORD_VALIDATORS = [
