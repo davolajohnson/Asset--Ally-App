@@ -1,1 +1,2 @@
-web: gunicorn config.wsgi
+web: gunicorn <asse--ally>.wsgi
+
