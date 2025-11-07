@@ -1,3 +1,4 @@
-web: gunicorn asset_ally_app.wsgi
+web: gunicorn config.wsgi
+
 
 
