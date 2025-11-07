@@ -12,13 +12,19 @@ load_dotenv()
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 # SECURITY WARNING: keep the secret key used in production secret!
+# Locally, this comes from .env
+# On Heroku, set SECRET_KEY in Config Vars
 SECRET_KEY = os.getenv("SECRET_KEY", "insecure-dev-key-change-me")
 
-# For local development, keep DEBUG=True
-DEBUG = True
+# Debug:
+#   - True locally (no ON_HEROKU set)
+#   - False on Heroku (ON_HEROKU is set in Config Vars)
+DEBUG = not "ON_HEROKU" in os.environ
 
-# Allowed hosts for DEBUG=False / safety
-ALLOWED_HOSTS = ["127.0.0.1", "localhost"]
+# Allowed hosts:
+# GA’s Heroku instructions say using "*" on Heroku is acceptable.
+# This also works locally and keeps things simple.
+ALLOWED_HOSTS = ["*"]
 
 # Application definition
 INSTALLED_APPS = [
@@ -62,28 +68,29 @@ TEMPLATES = [
 
 WSGI_APPLICATION = "config.wsgi.application"
 
-# Database
-# Use DATABASE_URL if provided, otherwise default to local sqlite
-if 'ON_HEROKU' in os.environ:
-    DATABASES = {
-        "default": dj_database_url.config(
-            env='DATABASE_URL',
-            conn_max_age=600,
-            conn_health_checks=True,
-            ssl_require=True,
-        ),
+# ======================
+# DATABASES
+# ======================
+# Default: SQLite locally
+DATABASES = {
+    "default": {
+        "ENGINE": "django.db.backends.sqlite3",
+        "NAME": BASE_DIR / "db.sqlite3",
     }
-else:
-    DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.postgresql',
-            'NAME': '<dbnamehere>',
-            # The value of 'NAME' should match the value of 'NAME' you replaced.
-        }
-    }
+}
 
+# If DATABASE_URL is set (e.g. on Heroku), override with Postgres
+db_from_env = dj_database_url.config(
+    env="DATABASE_URL",
+    conn_max_age=600,
+    conn_health_checks=True,
+)
+if db_from_env:
+    DATABASES["default"] = db_from_env
 
+# ======================
 # Password validation
+# ======================
 AUTH_PASSWORD_VALIDATORS = [
     {
         "NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator",
@@ -105,7 +112,9 @@ TIME_ZONE = "America/Chicago"
 USE_I18N = True
 USE_TZ = True
 
-# Static files
+# ======================
+# Static files / WhiteNoise
+# ======================
 STATIC_URL = "static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
 STATICFILES_DIRS = [BASE_DIR / "static"]
