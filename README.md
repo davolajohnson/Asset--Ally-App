@@ -6,8 +6,8 @@ It allows authorized users to assign, return, and monitor device checkouts with 
 ---
 
 ## 🚀 Live Demo
-🔗 [Deployed on Heroku]
-https://asset-ally-app-c6658cea654f.herokuapp.com/
+🔗 Deployed App: https://asset-ally-app.herokuapp.com/
+🔗 Admin Panel: https://asset-ally-app-c6658cea654f.herokuapp.com/admin/
 🔗 [GitHub Repo](https://github.com/davolajohnson/Asset--Ally-App)
 
 ---
