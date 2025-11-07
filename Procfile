@@ -1,2 +1,3 @@
-web: gunicorn <asse--ally>.wsgi
+web: gunicorn asset_ally_app.wsgi
+
 
